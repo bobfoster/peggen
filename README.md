@@ -14,9 +14,9 @@ Parsers can be written in Bryan Ford's original notation, using <-
 to define rules and / for alternatives, or in a slightly more readable
 notation using = and |. Here is the same rule written both ways.
 
-  rule <- term1 / term2
+    rule <- term1 / term2
   
-  rule = term1 | term2
+    rule = term1 | term2
 
 (Yes, you can mix and match, but that would be crazy.)
 
@@ -28,15 +28,15 @@ between lexing and parsing in PEG.
 A very general description of rule syntax that does not deal with
 whitespace and thus is NOT a PEG grammar is:
 
-  grammar     = rule+
-  rule        = rule-head ('<-' | '|') rule-body
-  rule-head   = rule-name qualifier?
-  rule-name   = identifier
-  rule=body   = alternative (('/' | '|') alternative)*
-  alternative = term term*
-  term        = ('!' | '&') term | unit
-  unit        = atom  ('?' | '*' | '+')
-  atom        = '.' | literal | set | identifier | '(' rule-body ')'
+    grammar     = rule+
+    rule        = rule-head ('<-' | '|') rule-body
+    rule-head   = rule-name qualifier?
+    rule-name   = identifier
+    rule=body   = alternative (('/' | '|') alternative)*
+    alternative = term term*
+    term        = ('!' | '&') term | unit
+    unit        = atom  ('?' | '*' | '+')
+    atom        = '.' | literal | set | identifier | '(' rule-body ')'
 
 The . atom matches any single character. The idom !. matches no
 character and hence only matches the end of input. One !. appears
@@ -82,8 +82,8 @@ A rule may be written on any number of lines.
 Whitespace (not shown in the grammar above!) may appear between any two
 operators or terms.
 
-# (not shown in the grammar above!) begins a comment that continues
-until the end of the line. # comments are treated as whitespace.
+\# (not shown in the grammar above!) begins a comment that continues
+until the end of the line. \# comments are treated as whitespace.
 
 The first rule in a grammar is the start rule. If your real start rule
 is somewhere in the middle, add another rule that calls it and put
