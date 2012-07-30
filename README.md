@@ -33,14 +33,14 @@ whitespace and thus is NOT a PEG grammar is:
     rule-head   = rule-name qualifier?
     rule-name   = identifier
     rule=body   = alternative (('/' | '|') alternative)*
-    alternative = term term*
-    term        = ('!' | '&') term | unit
-    unit        = atom  ('?' | '*' | '+')
+    alternative = term+
+    term        = ('!' | '&')? unit
+    unit        = atom  ('?' | '*' | '+')?
     atom        = '.' | literal | set | identifier | '(' rule-body ')'
 
 The . atom matches any single character. The idom !. matches no
 character and hence only matches the end of input. One !. appears
-in the first rule of most grammars.
+at the end of the first rule of most grammars.
 
 A literal is one or more characters in single quotes, like 'this'.
 
