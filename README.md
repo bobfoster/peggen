@@ -29,7 +29,7 @@ A very general description of rule syntax that does not deal with
 whitespace and thus is NOT a PEG grammar is:
 
     grammar     = rule+
-    rule        = rule-head ('<-' | '|') rule-body
+    rule        = rule-head ('<-' | '=') rule-body
     rule-head   = rule-name qualifier?
     rule-name   = identifier
     rule=body   = alternative (('/' | '|') alternative)*
@@ -44,7 +44,7 @@ at the end of the first rule of most grammars.
 
 A literal is one or more characters in single quotes, like 'this'.
 
-A set is a sequence of ranges enclosed in [ ] brackets, like [0-9a-fA-F].
+A set is a sequence of characters and ranges enclosed in [ ] brackets, like [_0-9a-fA-F].
 
 An identifier appearing in a rule body always identifies a rule in the grammar.
 
