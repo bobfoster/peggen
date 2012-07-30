@@ -1,0 +1,19 @@
+# Copyright (C) 2003-2012 Bob Foster. All rights reserved.
+# Provided under the terms of the Apache License, Version 2.0.
+#=====================================================================
+# Expression grammar using simple syntax
+#=====================================================================
+
+Grammar =  S? Prod !.
+Prod    =  Sum S? ((Mul | Div) S? Sum)*
+Sum     =  Unary S? ((Add | Sub) S? Unary)*
+Unary   =  (Minus S?) Term
+Term    =  NUMBER | '(' Prod ')'
+Mul     =  '*'
+Div     =  '/'
+Add     =  '+'
+Sub     =  '-'
+Minus   =  '-'
+NUMBER  =  DIGIT+ ('.' DIGIT+ | [eE] [-+]? DIGIT+ )?
+DIGIT   =  [0-9]
+S       =  [ \t\r\n]*
