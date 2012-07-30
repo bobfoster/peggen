@@ -160,7 +160,7 @@ public class Parser {
   
   private String indicateCharPos(int pos) {
     StringBuilder sb = new StringBuilder();
-    for (int i = pos; i >= 0; i--) {
+    for (int i = Math.min(pos, in.length-1); i >= 0; i--) {
 			char c = in[i];
 			if (c == '\r' || c == '\n')
         break;
@@ -174,7 +174,7 @@ public class Parser {
 	private String collectErrorString(int pos) {
 		StringBuffer buf = new StringBuffer();
     int start;
-    for (start = pos; start >= 0; start--) {
+    for (start = Math.min(pos, in.length-1); start >= 0; start--) {
 			char c = in[start];
 			if (c == '\r' || c == '\n')
         break;
