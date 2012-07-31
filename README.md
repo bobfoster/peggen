@@ -217,8 +217,8 @@ Miscellaneous Notes
   two alternatives that start with the same, arbitrarily long sequence 
   of symbols.
 
-- We extend Ford's syntax to allow grammar writers to indicate which
-  rules that will, perhaps conditionally, be pruned from the
+- We extend Ford's syntax to allow grammar writers to indicate
+  rules that are to be pruned from the
   output tree. A ~ written after a rule name means the rule is never
   included in the tree. A ~n, where n is an integer, means the
   rule is only included in the tree if it would have at least
@@ -226,8 +226,7 @@ Miscellaneous Notes
   
   The latter turns out to be very useful in avoiding the blizzard
   of inessential tree nodes that result from expressing operator
-  precedence by recursive rules that most of the time are just
-  stepping stones on the way to an interesting rule.
+  precedence by recursive rules.
   
 -  Literals, including quoted strings like 'a' and sets/ranges like
   [0-9a-fA-F], and the . which matches any character, are not rules
@@ -240,9 +239,6 @@ Miscellaneous Notes
   can alter the plain meaning of rules you only think you understand -
   so in balance, we left it out.
 
-- No, it wouldn't be hard to make peggen generate grammars in any
-  language. Didn't have the need. Feel free to tackle it.
-
 - Yes, it is possible to describe peggen grammars in peggen. In fact,
   I once bootstrapped peggen so that it generated its own parser.
   This was definitely NOT the simplest thing that could work (!)
@@ -251,4 +247,4 @@ Miscellaneous Notes
   Bob Foster
   July 29, 2012
   
-  Last modified July 30, 2012
+  Last modified July 31, 2012
