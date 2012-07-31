@@ -129,7 +129,7 @@ of the definition you care about is:
   to interpret the tree.
 * `parent` is the parent node, null for the head node.
 * `child` is the first child of the current node or null
-* `next` is the next child of the node's parent or null
+* `next` is the next sibling of the current node or null
 
 In a naive grammar, that is one without any ~ annotations, there will be
 a node for every rule matched by the parse. ~ annotations (see the
