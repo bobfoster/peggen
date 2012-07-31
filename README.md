@@ -87,16 +87,110 @@ until the end of the line. \# comments are treated as whitespace.
 
 The first rule in a grammar is the start rule. If your real start rule
 is somewhere in the middle, add another rule that calls it and put
-that rule in the front.
+that rule at the beginning.
 
 The best way to come to grips with peggen is to look at some examples
 that work. E.g., see the calc project also on GitHub.
+
+What Comes Out The Other End
+============================
+
+You generate a parser from your grammar; you feed it some of your language
+input as a String or byte array. What do you get out?
+
+You get an array of org.genantics.peggen.Node or null. If null, there
+is a separate method to fetch a List of error messages. The array contains
+a tree, your Abstract Syntax Tree (AST). The first element in the array
+is the head of the tree.
+
+Node is the only "library code" you need. (It probably should be packaged
+separately, to minimize the footprint of your application, but I haven't
+gotten around to that.) It's actually a struct written in Java. The part
+of the definition you care about is:
+
+    public class Node {
+	  public String name;
+      public int offset;
+	  public int length;
+	  public Node parent;
+	  public Node child;
+	  public Node next;
+	  ...
+	}
+
+Quelle horreur! No getters and setters! And is just the first heresy.
+
+* name is the name of the rule that matched and produced this node.
+  name fields are always set with String literals. If you remember
+  your Java specification, String literals are interned by the JVM
+  and it is safe to compare them with == (to other String literals),
+  though you don't have to.
+* offset and length are the zero-based position and length
+  of the characters in the string input that matched the rule.
+  You will need the input string to recover any String values you need
+  to interpret the tree.
+* parent is the parent node, null for the head node.
+* child is the first child of the current node or null
+* next is the next child of the node's parent or null
+
+In a naive grammar, that is one without any ~ annotations, there will be
+a node for every rule matched by the parse. ~ annotations (see the
+preceding section) have the ability to suppress nodes that aren't
+significant to the interpretation of the tree.
+
+For example, here's a little grammar:
+
+    add  = S? mul ('+' mul)*
+    mul  = term ('*' term)*
+    term = num | '(' S? expr ')' S?
+    num  = [0-9]+ S?
+    S    = [ \n\t\r]+
+
+If you generate a parser from it and feed the parser the input
+"3+4*5" you will get back a tree of Nodes with names like this (indentation
+indicates parent/child):
+
+    "add"
+      "mul"
+        "term"
+          "num" (3)
+      "mul"
+        "term"
+          "num" (4)
+        "term"
+          "num" (5)
+
+(S is never matched in the example.)
+
+If you mark up the grammar as follows:
+
+    add~2  = S? mul ('+' mul)*
+    mul~2  = term ('*' term)*
+    term~  = num | '(' S? expr ')' S?
+    num    = [0-9]+ S?
+    S~     = [ \n\t\r]+
+
+and repeat the experiment, you will get back a tree like this:
+
+    "add"
+      "num" (3)
+      "mul"
+        "num" (4)
+        "num" (5)
+
+Which is the tree you would draw on the blackboard as:
+
+        +
+       / \
+      3   *
+         / \
+        4   5
 
 Miscellaneous Notes
 ===================
 
 - No attempt has been made to peephole optimize the generated code.
-  It follows simple rules that implement PEG rules and terms, so we
+  It follows simple templates that implement PEG rules and terms, so we
   have high confidence code generation is correct.
   
 - It is not possible to insert Java code in the generated parser.
@@ -121,7 +215,7 @@ Miscellaneous Notes
     rule = !term thisrule | term thatrule
 
   where term is an arbitrarily complex lookahead used to disambiguate
-  two alternatives that match the same, arbitrarily long sequence 
+  two alternatives that start with the same, arbitrarily long sequence 
   of symbols.
 
 - We extend Ford's syntax to allow grammar writers to indicate which
@@ -147,10 +241,13 @@ Miscellaneous Notes
   can alter the plain meaning of rules you only think you understand -
   so in balance, we left it out.
 
-- No, it wouldn't be had to make peggen generate grammars in any
+- No, it wouldn't be hard to make peggen generate grammars in any
   language. Didn't have the need. Feel free to tackle it.
 
 - Yes, it is possible to describe peggen grammars in peggen. In fact,
   I once bootstrapped peggen so that it generated its own parser.
   This was definitely NOT the simplest thing that could work (!)
   so I abandoned it.
+  
+  Bob Foster
+  July 29, 2012
