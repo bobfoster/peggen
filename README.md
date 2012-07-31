@@ -95,10 +95,10 @@ that work. E.g., see the calc project also on GitHub.
 What Comes Out The Other End
 ============================
 
-You generate a parser from your grammar; you feed it some of your language
-input as a String or byte array. What do you get out?
+Generate a parser from your grammar; feed it language
+input as a String or byte array.
 
-You get an array of org.genantics.peggen.Node or null. If null, there
+You get back an array of org.genantics.peggen.Node or null. If null, there
 is a separate method to fetch a List of error messages. The array contains
 a tree, your Abstract Syntax Tree (AST). The first element in the array
 is the head of the tree.
@@ -117,8 +117,6 @@ of the definition you care about is:
 	  public Node next;
 	  ...
 	}
-
-Quelle horreur! No getters and setters! And is just the first heresy.
 
 * `name` is the name of the rule that matched and produced this node.
   name fields are always set with String literals. If you remember

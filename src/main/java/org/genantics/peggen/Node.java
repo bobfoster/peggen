@@ -20,16 +20,21 @@ import java.util.LinkedList;
  */
 public class Node {
 
+  // These are the output fields
+  
+	public String name;
 	public int offset;
 	public int length;
-	public String name;
 	public Node parent;
+	public Node child;
+	public Node next;
+  
+  // The remaining fields are only used during parsing
+  
 	// child and next are not used during the parse
 	// these can be fixed up in one pass through the
 	// array on exit
-	public Node child;
 	public Node last;
-	public Node next;
 	// nextout is only used durine the parse
 	// (could be in separate int array)
 	public int nextout;
@@ -41,6 +46,7 @@ public class Node {
 	public boolean success;
 	public boolean remove;
 	public boolean collect;
+  
 	public Node(String name, Node parent, int offset) {
 		this.name = name;
 		this.parent = parent;
