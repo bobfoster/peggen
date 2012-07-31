@@ -241,7 +241,7 @@ Miscellaneous Notes
 
 - Yes, it is possible to describe peggen grammars in peggen. In fact,
   I once bootstrapped peggen so that it generated its own parser.
-  This was definitely NOT the simplest thing that could work (!)
+  That was definitely NOT the simplest thing that could work (!)
   so I abandoned it.
   
   Bob Foster
