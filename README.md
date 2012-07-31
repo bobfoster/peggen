@@ -211,7 +211,7 @@ Miscellaneous Notes
   with almost no overhead. It is particularly good at optimizing the
   common idiom:
   
-      rule = !term thisrule | term thatrule
+      `rule = !term thisrule | term thatrule`
 
   where term is an arbitrarily complex lookahead used to disambiguate
   two alternatives that start with the same, arbitrarily long sequence 
