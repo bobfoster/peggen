@@ -231,7 +231,7 @@ Miscellaneous Notes
   precedence by recursive rules that most of the time are just
   stepping stones on the way to an interesting rule.
   
-  Literals, including quoted strings like 'a' and sets/ranges like
+-  Literals, including quoted strings like 'a' and sets/ranges like
   [0-9a-fA-F], and the . which matches any character, are not rules
   and never appear in the output tree. If you want to know that
   a particular literal was matched, wrap it in a rule.
