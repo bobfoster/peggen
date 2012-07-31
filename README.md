@@ -142,8 +142,8 @@ For example, here's a little grammar:
 
     add  = S? mul ('+' mul)*
     mul  = term ('*' term)*
-    term = num | '(' S? expr ')' S?
-    num  = [0-9]+ S?
+    term = num S? | '(' S? expr ')' S?
+    num  = [0-9]+
     S    = [ \n\t\r]+
 
 If you generate a parser from it and feed the parser the input
@@ -160,14 +160,15 @@ indicates parent/child):
         "term"
           "num" (5)
 
-(S is never matched in the example.)
+(S is never matched in the example input, but it's in the example grammar
+to remind you that there's nothing special about whitespace in a PEG.)
 
 If you mark up the grammar as follows:
 
     add~2  = S? mul ('+' mul)*
     mul~2  = term ('*' term)*
-    term~  = num | '(' S? expr ')' S?
-    num    = [0-9]+ S?
+    term~  = num S? | '(' S? expr ')' S?
+    num    = [0-9]+
     S~     = [ \n\t\r]+
 
 and repeat the experiment, you will get back a tree like this:
