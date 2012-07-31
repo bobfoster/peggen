@@ -205,13 +205,13 @@ Miscellaneous Notes
   into PEG, but no.
   
 - There are, as far as we know, no restrictions on PEG as defined by
-  Ford. Packrat parsing is another matter. Rather than accept the time
-  and space complexity of packrat, we have implemented a "mini-packrat"
+  Ford. Packrat parsing is another matter. Rather than accept the memory
+  overhead of packrat, we have implemented a "mini-packrat"
   scheme that provides some of the performance benefits of packrat
   with almost no overhead. It is particularly good at optimizing the
   common idiom:
   
-    rule = !term thisrule | term thatrule
+      rule = !term thisrule | term thatrule
 
   where term is an arbitrarily complex lookahead used to disambiguate
   two alternatives that start with the same, arbitrarily long sequence 
