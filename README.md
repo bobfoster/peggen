@@ -140,7 +140,7 @@ significant to the interpretation of the tree.
 
 For example, here's a little grammar:
 
-    add  = S? mul ('+' mul)*
+    add  = S? mul ('+' mul)* !.
     mul  = term ('*' term)*
     term = num S? | '(' S? expr ')' S?
     num  = [0-9]+
@@ -165,7 +165,7 @@ to remind you that there's nothing special about whitespace in a PEG.)
 
 If you mark up the grammar as follows:
 
-    add~2  = S? mul ('+' mul)*
+    add~2  = S? mul ('+' mul)* !.
     mul~2  = term ('*' term)*
     term~  = num S? | '(' S? expr ')' S?
     num    = [0-9]+
