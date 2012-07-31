@@ -120,18 +120,18 @@ of the definition you care about is:
 
 Quelle horreur! No getters and setters! And is just the first heresy.
 
-* name is the name of the rule that matched and produced this node.
+* `name` is the name of the rule that matched and produced this node.
   name fields are always set with String literals. If you remember
   your Java specification, String literals are interned by the JVM
   and it is safe to compare them with == (to other String literals),
   though you don't have to.
-* offset and length are the zero-based position and length
+* `offset` and `length` are the zero-based position and length
   of the characters in the string input that matched the rule.
   You will need the input string to recover any String values you need
   to interpret the tree.
-* parent is the parent node, null for the head node.
-* child is the first child of the current node or null
-* next is the next child of the node's parent or null
+* `parent` is the parent node, null for the head node.
+* `child` is the first child of the current node or null
+* `next` is the next child of the node's parent or null
 
 In a naive grammar, that is one without any ~ annotations, there will be
 a node for every rule matched by the parse. ~ annotations (see the
