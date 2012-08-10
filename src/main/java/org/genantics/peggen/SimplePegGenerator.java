@@ -1,18 +1,19 @@
 /*******************************************************************************
- * Copyright (C) 2003-2012 Bob Foster. All rights reserved.
- * 
- * This software is provided under the terms of the Apache License, Version 2.0
- * A copy of the license is available at http://www.apache.org/licenses/LICENSE-2.0.html.
- * 
+ * Copyright (c) 2003-2012 Bob Foster.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
  * Contributors:
- * 
- *    Bob Foster, initial API and implementation.
+ *    Bob Foster - initial API and implementation
  *******************************************************************************/
  
 package org.genantics.peggen;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.HashSet;
 
 /**
  * Generates a PEG parser in the style of Parser.
@@ -63,7 +64,10 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 		this.tab = tab;
 		indent = "";
 		loc = 0;
+    preprocess(grammar);
 		visit(grammar);
+    if (!allRules.contains("WS"))
+      generateWS();
 	}
 	
 	/**
@@ -106,6 +110,31 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 	void setVerbose(boolean verbose) {
 		this.verbose = verbose;
 	}
+  
+  HashSet<String> allRules = new HashSet<String>();
+  
+  /**
+   * Preprocess Definition and BNFDefinition nodes and add them to the
+   * allRules and xRules sets as appropriate. This information could
+   * be used to detect missing rule definitions, but there is no
+   * provision for error handling in the API. It is used to detect
+   * when WS rule needs to be generated.
+   * 
+   * TODO Add missing rule error detection.
+   * 
+   * @param node to visit
+   */
+  void preprocess(Node node) {
+    if (node.name == "Definition" || node.name == "BNFDefinition") {
+      Node ident = node.child;
+      expect(ident, "Identifier");
+      String name = new String(in, ident.offset, ident.length).trim();
+      allRules.add(name);
+    } else {
+      for (Node child = node.child; child != null; child = child.next)
+        preprocess(child);
+    }
+  }
 	
 	void collectClass(Node node) {
 		// Class <- '['~ (!']' Range)* ']'~ Spacing
@@ -150,6 +179,8 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 			else {
 				genSet();
 			}
+      if (inBNFRule)
+        callWS();
 		}
 	}
 	
@@ -175,11 +206,15 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 		writer.println("\");");
 	}
 	
+  boolean inBNFRule = false;
+  
 	void visitDefinition(Node node) {
 		// Definition <- Identifier DEFSUPPRESS? LEFTARROW Expression
 		Node ident = node.child;
 		expect(ident, "Identifier");
 		String name = new String(in, ident.offset, ident.length).trim();
+    
+    inBNFRule = node.name == "BNFDefinition";
 		
 		if (verbose) System.out.println(name+" <-");
 		
@@ -191,9 +226,13 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 		leftBrace();
 		
 		// body
+    
+    // This can be a bit confusing. Originally, suppress was designed as
+    // ~n (conditional suppress) or ~~ (always suppress). But the latter
+    // looked messy, so it was changed to ~n (conditional) or ~ (always).
+    // The old syntax is still allowed.
 		Node expr = ident.next;
 		suppressRule = false;
-		append = true;
 		count = -1;
 		loc = 0;
 		if (expr != null && expr.name == "DEFSUPPRESS") {
@@ -204,7 +243,7 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 			Node bodysuppress = suppress.next;
 			if (bodysuppress != null) {
 				if (bodysuppress.name == "SUPPRESS")
-					append = false;
+					;
 				else {
 					int begin = suppress.offset+suppress.length;
 					int end = expr.offset+expr.length;
@@ -213,7 +252,6 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 					suppressRule = false;
 				}
 			}
-				append = false;
 			expr = expr.next;
 		}
 		
@@ -634,8 +672,16 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 				writer.print(escapeLiteral(sresult));
 				writer.println("\");");
 			}
+      if (inBNFRule)
+        callWS();
 		}
 	}
+    
+  void callWS() {
+		writer.print(indent);
+    writer.print("ruleWS");
+    printlnArg();
+  }
 
 	void visitPrefix(Node node) {
 		// Prefix~2 <- (AND / NOT)? Suffix
@@ -781,19 +827,23 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 		
 		restoreOut(mark);
 	}
-
-	protected void generateBoilerPlate() {
+  
+  protected String eol;
+  
+  protected void generateArray(String[] array) {
 		writer.println();
 		
-		StringWriter sw = new StringWriter();
-		PrintWriter pw = new PrintWriter(sw);
-		pw.println();
-		pw.close();
-		String eol = sw.getBuffer().toString();
+    if (eol == null) {
+      StringWriter sw = new StringWriter();
+      PrintWriter pw = new PrintWriter(sw);
+      pw.println();
+      pw.close();
+      eol = sw.getBuffer().toString();
+    }
 		
 		StringBuffer buf = new StringBuffer();
-		for (int i = 0; i < PLATE.length; i++) {
-			String s = PLATE[i];
+		for (int i = 0; i < array.length; i++) {
+			String s = array[i];
 			for (int j = 0, n = s.length(); j < n; j++) {
 				char c = s.charAt(j);
 				if (c == '\t')
@@ -807,6 +857,23 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 			writer.print(buf.toString());
 			buf.setLength(0);
 		}
+  }
+  
+  protected void generateWS() {
+    generateArray(WS);
+  }
+  
+  protected static final String[] WS = {
+  "protected boolean ruleWS(Node parent) {\n",
+  "  // hand-optimized\n",
+  "  while(matchSet(\" \\t\\r\\n\"))\n",
+  "    ;\n",
+  "  return true;\n",
+  "}\n",
+  };
+
+	protected void generateBoilerPlate() {
+    generateArray(PLATE);
 	}
 	
 	protected String[] getBoilerPlate() {
@@ -841,7 +908,7 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
     "\n",
     "private String indicateCharPos(int pos) {\n",
     "  StringBuilder sb = new StringBuilder();\n",
-    "  for (int i = Math.min(pos, in.length-1); i >= 0; i--) {\n",
+    "  for (int i = pos; i >= 0; i--) {\n",
 		"    char c = in[i];\n",
 		"    if (eol(c))\n",
     "      break;\n",
@@ -855,7 +922,7 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 	  "private String collectErrorString(int pos) {\n",
 		"  StringBuilder buf = new StringBuilder();\n",
     "  int start;\n",
-    "  for (start = Math.min(pos, in.length-1); start >= 0; start--) {\n",
+    "  for (start = pos; start >= 0; start--) {\n",
 		"    char c = in[start];\n",
 		"    if (eol(c))\n",
     "      break;\n",

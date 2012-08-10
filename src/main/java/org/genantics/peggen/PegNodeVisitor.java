@@ -1,12 +1,12 @@
 /*******************************************************************************
- * Copyright (C) 2003-2012 Bob Foster. All rights reserved.
- * 
- * This software is provided under the terms of the Apache License, Version 2.0
- * A copy of the license is available at http://www.apache.org/licenses/LICENSE-2.0.html.
- * 
+ * Copyright (c) 2003-2012 Bob Foster.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
  * Contributors:
- * 
- *    Bob Foster, initial API and implementation.
+ *    Bob Foster - initial API and implementation
  *******************************************************************************/
  
 package org.genantics.peggen;
@@ -41,6 +41,7 @@ public abstract class PegNodeVisitor {
 	public static final int DEFSUPPRESS = 20;
 	public static final int TERM = 21;
 	public static final int ERROR = 22;
+  public static final int BNFDEFINITION = 23;
 
 	public static final HashMap PEGMAP = new HashMap();
 	static {
@@ -67,6 +68,7 @@ public abstract class PegNodeVisitor {
 		PEGMAP.put("DEFSUPPRESS", new Integer(DEFSUPPRESS));
 		PEGMAP.put("Term", new Integer(TERM));
 		PEGMAP.put("Error", new Integer(ERROR));
+		PEGMAP.put("BNFDefinition", new Integer(BNFDEFINITION));
 	}
 	
 	public void visitChildren(Node p) {
@@ -80,6 +82,7 @@ public abstract class PegNodeVisitor {
 				visitGrammar(p);
 				break;
 			case DEFINITION :
+      case BNFDEFINITION:
 				visitDefinition(p);
 				break;
 			case EXPRESSION :

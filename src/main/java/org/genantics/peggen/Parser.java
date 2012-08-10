@@ -1,14 +1,14 @@
 /*******************************************************************************
- * Copyright (C) 2003-2012 Bob Foster. All rights reserved.
- * 
- * This software is provided under the terms of the Apache License, Version 2.0
- * A copy of the license is available at http://www.apache.org/licenses/LICENSE-2.0.html.
- * 
+ * Copyright (c) 2003-2012 Bob Foster.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
  * Contributors:
- * 
- *    Bob Foster, initial API and implementation.
+ *    Bob Foster - initial API and implementation
  *******************************************************************************/
-  
+ 
 package org.genantics.peggen;
 
 import java.util.LinkedList;
@@ -160,7 +160,7 @@ public class Parser {
   
   private String indicateCharPos(int pos) {
     StringBuilder sb = new StringBuilder();
-    for (int i = Math.min(pos, in.length-1); i >= 0; i--) {
+    for (int i = pos; i >= 0; i--) {
 			char c = in[i];
 			if (c == '\r' || c == '\n')
         break;
@@ -174,7 +174,7 @@ public class Parser {
 	private String collectErrorString(int pos) {
 		StringBuffer buf = new StringBuffer();
     int start;
-    for (start = Math.min(pos, in.length-1); start >= 0; start--) {
+    for (start = pos; start >= 0; start--) {
 			char c = in[start];
 			if (c == '\r' || c == '\n')
         break;
@@ -211,8 +211,15 @@ public class Parser {
 			match = ruleDEFSUPPRESS(rule);
 			match = true;
 		}
-		if (match)
+		if (match) {
 			match = ruleLEFTARROW(rule);
+      if (!match) {
+        // Hack to allow extended BNF rules
+        match = matchLiteral("::=");
+        if (match)
+          rule.name = "BNFDefinition";
+      }
+    }
 		if (match)
 			match = ruleExpression(rule);
 			
@@ -788,7 +795,7 @@ public class Parser {
 		// LEFTARROW~~ <- ('<-' / '=') Spacing # Changed
 		// note match code generation pattern
 		int outstart = outpos;
-		if (sameRule("STAR")) return out[outstart].success;
+		if (sameRule("LEFTARROW")) return out[outstart].success;
 		
 		boolean match = false;
 		int outmark = outpos;
