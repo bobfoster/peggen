@@ -20,7 +20,7 @@ notation using = and |. Here is the same rule written both ways.
 (Yes, you can mix and match, but that would be crazy.)
 
 There is actually a third definition operator, `::=`, used to write "BNF"
-grammars. We will discuss BNF separately.
+grammars. We will discuss `::=` separately.
 
 Rule names are not case-sensitive. If you want to follow the practice
 of writing "lexical" rules in CAPS and "parse" rules in lowercase,
@@ -170,11 +170,11 @@ add no information at all, and a mul with only one child signifies nothing.
 
 If you mark up the grammar as follows:
 
-    gram~  = add !.
-    add~2  = mul ('+' mul)*
-    mul~2  = term ('*' term)*
-    term~  = num | '(' add ')'
-    num    = [0-9]+ '.' [0-9]+
+    gram ~   = add !.
+    add  ~2  = mul ('+' mul)*
+    mul  ~2  = term ('*' term)*
+    term ~   = num | '(' add ')'
+    num      = [0-9]+ '.' [0-9]+
 
 and repeat the experiment, you will get back a tree like this:
 
@@ -197,7 +197,7 @@ Usually, one writes a visitor with a method for each non-~ rule in the
 grammar, and a dispatch rule that keys off the names of the nodes. For the
 above grammar there are only three rules.
 
-    float eval(Node node) {
+    double eval(Node node) {
       if (node.name == "add")  // yes, this is valid*
         return evalAdd(node);
       if (node.name == "mul")
@@ -205,19 +205,19 @@ above grammar there are only three rules.
       if (node.name == "num")
         return evalNum(node);
     }
-    float evalAdd(Node node) {
-      float n = eval(node.child);
+    double evalAdd(Node node) {
+      double n = eval(node.child);
       for (Node child = node.child.next; child != null; child = child.next)
     	n += eval(child);
       return n;
     }
-    float evalMul(Node node) {
-      float n = eval(node.child);
+    double evalMul(Node node) {
+      double n = eval(node.child);
       for (Node child = node.child.next; child != null; child = child.next)
     	n *= eval(child);
       return n;
     }
-    float evalNum(Node node) {
+    double evalNum(Node node) {
       String num = inString.substring(node.offset, node.offset+node.length);
       return Double.parseDouble(num);
     }
@@ -229,29 +229,58 @@ Note that the original input, as a String or char array, is needed to
 extract literals (or in DSLs, identifiers). A Node only has offsets into 
 this String or array.
 
+(In the above, we wrote the ~ annotation in a separate column for neatness.
+This whitespace is, of course, not significant. Any of these would be valid:
+
+    add ~ 2 = mul ('+' mul)*
+    add  ~2 = mul ('+' mul)*
+    add~2 = mul ('+' mul)*
+    add~2=mul('+'mul)*
+
+but it is very important you be able to read your grammars!)
+    
 Dealing With Whitespace
 =======================
 
 The grammar above allows no whitespace between numbers and operators.
-In a PEG grammar, whitespace between any two symbols would be allowed
+In a PEG grammar, whitespace between any two symbols could be allowed
 by modifying the grammar as follows:
 
-	gram~  = S add !.
-    add~2  = mul ('+' S mul)* !.
-    mul~2  = term ('*' S term)*
-    term~  = num S | '(' S add ')' S
-    num    = [0-9]+ '.' [0-9]+
-    S~     = [ \t\r\n]*
+	gram ~   = S add !.
+    add  ~2  = mul ('+' S mul)* !.
+    mul  ~2  = term ('*' S term)*
+    term ~   = num S | '(' S add ')' S
+    num      = [0-9]+ '.' [0-9]+
+    S    ~   = [ \t\r\n]*
 
 Since the added gram and S rules are marked with ~ they will not
 appear in the output tree, which will remain as discussed above.
 
+An alternative approach, suggested by Bryan Ford, is to separate
+rules into two classes, only one of which deals with whitespace.
+For example:
+
+	GRAM   ~   = S add !.
+    add    ~2  = mul (PLUS mul)* !.
+    mul    ~2  = term (TIMES term)*
+    term   ~   = NUM | LPAREN add RPAREN
+    num        = [0-9]+ '.' [0-9]+
+    S      ~   = [ \t\r\n]*
+    PLUS   ~   = '+' S
+    TIMES  ~   = '*' S
+    NUM    ~   = num S
+    LPAREN ~   = '(' S
+    RPAREN ~   = ')' S
+
+Both approaches have drawbacks. The first grammar is cluttered with
+whitespace annotation and is error-prone. The second nearly
+doubles the size of the grammar while making it somewhat less readable.
+More complex grammars can be even more muddled.
+
 "BNF" Grammars
 ==============
 
-Unfortunately, even the very simple grammar above is cluttered up by
-whitespace considerations. More complex grammars can be even more
-muddled and it is easy to make mistakes. Wouldn't it be nice if
+Wouldn't it be nice if
 there were a way to write grammars without fussing over whitespace?
 
 There is, using the "BNF" operator. The following is equivalent to
@@ -263,20 +292,22 @@ the grammar above:
     term ~   ::= num | '(' add ')'
     num      =   [0-9]+ '.' [0-9]+
 
+(We have written the ~ annotation in a separate column for neatness.)
+
 We call `::=` the BNF operator as homage to John Backus and Peter Naur,
 who invented the notation to describe Algol 60. We write "BNF" in
-quotes because, it is of course, not BNF at all, which defines 
-context-free grammars, but PEG
+quotes because, it is of course, not BNF at all - BNF defines 
+context-free grammars - but PEG
 augmented with a whitespace-handling trick. The notation does closely
-resemble the numerous "Extended BNF" notations that added regular
-expression operators for iteration, as PEG does, but uses [ ] brackets
+resemble the numerous "Extended BNF" notations that have added regular
+expression operators for iteration, as PEG does, but PEG uses [ ] brackets
 in an entirely different way.
 
-In rules defined with ::=, peggen automatically inserts a
+In rules defined with `::=`, peggen automatically inserts a
 call to the WS rule after every literal, character set or call to
-a non-::= rule. (But not after . (dot).)
+a non-`::=` rule. (But not after `.` (dot).)
 
-In a grammar with any ::= rules, the WS rule is predefined as:
+In a grammar with any `::=` rules, the WS rule is predefined as:
 
     WS  ~ = $WS
     $WS ~ = [ \t\r\n]*
@@ -330,13 +361,20 @@ it pops the stack. This allows indentation levels to be nested, as one
 would expect. Note that a ! match is a match, as far as $Outdent is
 concerned.
 
+A limitation of the current implementation is that the tab ('\t')
+character is always counted as 8 spaces. Fortunately, most editors
+allow you to set up tab key handling so that the nominal size of the
+tab character is independent of the indentation style of the author.
+
 Error Handling
 ==============
 
 The first thing to say about error handling is, peggen isn't very good
 at it. When a grammar doesn't match, peggen produces one error message,
 "Syntax error" with a pointer to the approximate position in the input
-where the parse failed.
+where the parse failed. (Also, when a grammar uses undefined rules,
+peggen produces one error message per undefined rule, indicating the
+position at which it was first used.)
 
 It is possible to improve, at least, the number of errors detected,
 by using the special $Error rule. $Error always matches and, as a
