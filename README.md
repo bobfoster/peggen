@@ -287,19 +287,17 @@ there were a way to write grammars without fussing over whitespace?
 There is, using BNF-like rule definitions. The following is equivalent to
 the two preceding grammars:
 
-    gram ~   ::= WS add !.
+    gram ~     = WS add !.
     add  ~2  ::= mul ('+' mul)*
     mul  ~2  ::= term ('*' term)*
     term ~   ::= num | '(' add ')'
-    num      =   [0-9]+ '.' [0-9]+
+    num        = [0-9]+ '.' [0-9]+
 
-(We have written the ~ annotation in a separate column for neatness.)
-
-We use `::=` as an homage to John Backus and Peter Naur,
-who invented Backus Naur Form (BNF) notation to describe Algol 60.
-Of course, this is not BNF at all. BNF defines 
+We use `::=` because it is unlikely to be confused with `=` and as an homage
+to Backus Naur Form (BNF) notation. But don't
+be fooled, this is not BNF. BNF defines 
 context-free grammars. These rules define PEG grammars
-augmented with a whitespace-handling trick. Nothing else is changed.
+augmented with a whitespace-handling trick.
 
 In rules defined with `::=`, peggen automatically inserts a
 call to the WS rule after every literal, character set or call to
