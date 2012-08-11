@@ -66,8 +66,6 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 		loc = 0;
     preprocess(grammar);
 		visit(grammar);
-    if (!allRules.contains("WS"))
-      generateWS();
 	}
 	
 	/**
@@ -112,6 +110,7 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 	}
   
   HashSet<String> allRules = new HashSet<String>();
+  HashSet<String> BNFRules = new HashSet<String>();
   
   /**
    * Preprocess Definition and BNFDefinition nodes and add them to the
@@ -130,6 +129,8 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
       expect(ident, "Identifier");
       String name = new String(in, ident.offset, ident.length).trim();
       allRules.add(name);
+      if (node.name == "BNFDefinition")
+        BNFRules.add(name);
     } else {
       for (Node child = node.child; child != null; child = child.next)
         preprocess(child);
@@ -528,7 +529,7 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 		
 		if (startRule == null) {
 			Node defn = node.child;
-			for (; defn.name != "Definition"; defn = defn.next)
+			for (; defn.name != "Definition" && defn.name != "BNFDefinition"; defn = defn.next)
 				continue;
 			if (defn == null) error("No definitions in grammar");
 			Node ident = defn.child;
@@ -625,6 +626,8 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 		writer.print("match = ");
 		writer.print(ruleName(id));
 		printlnArg();
+    if (inBNFRule && !BNFRules.contains(id))
+      callWS();
 		if (count >= 0) {
 			writer.print(indent);
 			writer.println("if (match) count++;");
@@ -678,8 +681,11 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 	}
     
   void callWS() {
-		writer.print(indent);
-    writer.print("ruleWS");
+    writer.print(indent);
+    writer.println("if (match)");
+    writer.print(indent);
+    writer.print(tab);
+    writer.print(ruleName("WS"));
     printlnArg();
   }
 
@@ -859,20 +865,9 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 		}
   }
   
-  protected void generateWS() {
-    generateArray(WS);
-  }
-  
-  protected static final String[] WS = {
-  "protected boolean ruleWS(Node parent) {\n",
-  "  // hand-optimized\n",
-  "  while(matchSet(\" \\t\\r\\n\"))\n",
-  "    ;\n",
-  "  return true;\n",
-  "}\n",
-  };
-
 	protected void generateBoilerPlate() {
+    if (!BNFRules.isEmpty() && !allRules.contains("WS"))
+      generateArray(WS);
     generateArray(PLATE);
 	}
 	
@@ -880,7 +875,63 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 		return PLATE;
 	}
 	
+  protected static final String[] WS = {
+  "protected boolean ruleWS(Node parent) {\n",
+  "  return rule$WS(parent);\n",
+  "}\n",
+  };
+
 	protected static final String[] PLATE = new String[] {
+    "protected int[] indentStack = new int[1];\n",
+    "protected int indentIndex = 0;\n",
+    "protected int curIndent = 0;\n",
+    "protected int indentPos = 0;\n",
+    "protected int tabSpaces = 8;\n",
+    "\n",
+    "protected boolean rule$Indent(Node parent) {\n",
+    "  if (inpos == indentPos && curIndent > indentStack[indentIndex]) {\n",
+    "  	if (indentIndex == indentStack.length - 1) {\n",
+    "  	  int[] tmp = new int[indentStack.length * 2];\n",
+    "  	  System.arraycopy(indentStack, 0, tmp, 0, indentIndex+1);\n",
+    "  	  indentStack = tmp;\n",
+    "  	}\n",
+    "  	indentStack[++indentIndex] = curIndent;\n",
+    "  	return true;\n",
+    "  }\n",
+    "  return false;\n",
+    "}\n",
+    "\n",
+    "protected boolean rule$Outdent(Node parent) {\n",
+    "	if (inpos == indentPos && curIndent < indentStack[indentIndex]\n",
+    "	    && curIndent <= indentStack[indentIndex-1]) {\n",
+    "	  indentIndex--;\n",
+    "	  return true;\n",
+    "	}\n",
+    "	return false;\n",
+    "}\n",
+    "\n",
+    "protected boolean rule$WS(Node parent) {\n",
+    "  int start = -1;\n",
+    "  boolean match = true;\n",
+    "  while (match) {\n",
+    "    while(matchSet(\" \\t\\r\"))\n",
+    "  	  ;\n",
+    "    if (match = matchChar('\\n'))\n",
+    "  	  start = inpos;\n",
+    "  }\n",
+    "  if (start >= 0) {\n",
+    "    curIndent = 0;\n",
+    "  	for (int i = start; i < inpos; i++) {\n",
+    "  	  if (in[i] == ' ')\n",
+    "  	    curIndent++;\n",
+    "  	  else if (in[i] == '\\t')\n",
+    "  	  	curIndent += tabSpaces;\n",
+    "  	}\n",
+    "  	indentPos = inpos;\n",
+    "  }\n",
+    "  return true;\n",
+    "}\n",
+    "\n",
     "private void error() {\n",
 		"  if (errors == null)\n",
 		"    errors = new LinkedList();\n",
@@ -908,7 +959,7 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
     "\n",
     "private String indicateCharPos(int pos) {\n",
     "  StringBuilder sb = new StringBuilder();\n",
-    "  for (int i = pos; i >= 0; i--) {\n",
+    "  for (int i = pos >= in.length ? in.length-1 : pos; i >= 0; i--) {\n",
 		"    char c = in[i];\n",
 		"    if (eol(c))\n",
     "      break;\n",
@@ -921,8 +972,8 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
     "\n",
 	  "private String collectErrorString(int pos) {\n",
 		"  StringBuilder buf = new StringBuilder();\n",
-    "  int start;\n",
-    "  for (start = pos; start >= 0; start--) {\n",
+    "  int start = pos >= in.length ? in.length-1 : pos;\n",
+    "  for (; start >= 0; start--) {\n",
 		"    char c = in[start];\n",
 		"    if (eol(c))\n",
     "      break;\n",

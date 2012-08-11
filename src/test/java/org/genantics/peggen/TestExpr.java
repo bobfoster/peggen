@@ -15,8 +15,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import junit.framework.TestCase;
 
 /**
@@ -66,6 +64,13 @@ public class TestExpr extends TestCase {
    */
   public void testClassicExpr() {
     generate("expr-classic", "ParseClassicExpr");
+  }
+  
+  /**
+   * Test the same grammar written with BNF syntax.
+   */
+  public void testBNFExpr() {
+    generate("expr-bnf", "ParseBNFExpr");
   }
 
 }

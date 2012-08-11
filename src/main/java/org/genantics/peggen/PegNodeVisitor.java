@@ -42,6 +42,7 @@ public abstract class PegNodeVisitor {
 	public static final int TERM = 21;
 	public static final int ERROR = 22;
   public static final int BNFDEFINITION = 23;
+  public static final int SPECIALIDENTIFIER = 24;
 
 	public static final HashMap PEGMAP = new HashMap();
 	static {
@@ -69,6 +70,7 @@ public abstract class PegNodeVisitor {
 		PEGMAP.put("Term", new Integer(TERM));
 		PEGMAP.put("Error", new Integer(ERROR));
 		PEGMAP.put("BNFDefinition", new Integer(BNFDEFINITION));
+		PEGMAP.put("SpecialIdentifier", new Integer(SPECIALIDENTIFIER));
 	}
 	
 	public void visitChildren(Node p) {
@@ -104,6 +106,7 @@ public abstract class PegNodeVisitor {
 				visitPrimary(p);
 				break;
 			case IDENTIFIER :
+      case SPECIALIDENTIFIER :
 				visitIdentifier(p);
 				break;
 			case LITERAL :

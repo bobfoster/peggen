@@ -212,13 +212,16 @@ public class Parser {
 			match = true;
 		}
 		if (match) {
+      // Hack to allow extended BNF rules
+      int inmark = inpos;
+      int outmark = outpos;
+      match = matchLiteral("::=");
+      inpos = inmark;
+      outpos = outmark;
+      if (match)
+        rule.name = "BNFDefinition";
+      
 			match = ruleLEFTARROW(rule);
-      if (!match) {
-        // Hack to allow extended BNF rules
-        match = matchLiteral("::=");
-        if (match)
-          rule.name = "BNFDefinition";
-      }
     }
 		if (match)
 			match = ruleExpression(rule);
@@ -428,6 +431,7 @@ public class Parser {
 	boolean rulePrimary(Node rule) {
 		// Primary~ <- Error
 		// / Identifier !(DEFSUPPRESS? LEFTARROW)
+    // / SpecialIdentifier
 		// / &'(' Term
 		// / Literal / Class / DOT
 		// this code illustrates the general case for alternatives
@@ -452,6 +456,8 @@ public class Parser {
 				inpos = inmark1;
 			}
 		}
+    if (!match)
+      match = ruleSpecialIdentifier(rule);
 		if (!match) {
 			outpos = outmark;
 			inpos = inmark;
@@ -792,7 +798,7 @@ public class Parser {
 	}
 
 	boolean ruleLEFTARROW(Node parent) {
-		// LEFTARROW~~ <- ('<-' / '=') Spacing # Changed
+		// LEFTARROW~~ <- ('<-' / '=' / '::=') Spacing # Changed
 		// note match code generation pattern
 		int outstart = outpos;
 		if (sameRule("LEFTARROW")) return out[outstart].success;
@@ -803,8 +809,10 @@ public class Parser {
 		
 		match = matchLiteral("<-");
 		if (!match) {
-			if (match = inpos < inend && in[inpos] == '=')
-				inpos++;
+			match = matchChar('=');
+      if (!match)
+        // Hack to allow extended BNF rules
+        match = matchLiteral("::=");
 		}
 		if (match) {
 			match = ruleSpacing(parent);
@@ -860,6 +868,27 @@ public class Parser {
 		if (!match) return fail(rule, outstart);
 		return succeed(rule);
 	}
+  
+  boolean ruleSpecialIdentifier(Node parent) {
+    // SpecialIdentifier <= '$' Identifier
+		int outstart = outpos;
+		if (sameRule("SpecialIdentifier")) return out[outstart].success;
+    
+		int inmark = inpos;
+		int outmark = outpos;
+    boolean match = matchChar('$');
+    if (match)
+      match = ruleIdentifier(parent);
+		if (!match) {
+			outpos = outmark;
+			inpos = inmark;
+			return false;
+		}
+		Node rule = new Node("SpecialIdentifier", parent, inmark);
+		out[outpos++] = rule;
+		return succeed(rule);
+		
+  }
 
 	boolean ruleIdentifier(Node parent) {
 		// Identifier <- IdentStart~ IdentCont~* Spacing~
@@ -898,6 +927,8 @@ public class Parser {
 		match = matchRange("azAZ");
 		if (!match)
 			match = matchChar('_');
+    if (!match)
+      match = matchChar('$');
 		if (!match) return false;
 		return true;
 	}
