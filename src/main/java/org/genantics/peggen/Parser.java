@@ -454,37 +454,6 @@ public class Parser {
 		return succeed(rule);
 	}
 	
-	boolean ruleError(Node parent) {
-		// Error <- ERROR
-		int outstart = outpos;
-		if (sameRule("Error")) return out[outstart].success;
-		Node rule = new Node("Error", parent, inpos);
-		out[outpos++] = rule;
-		
-		boolean match;
-		match = ruleERROR(rule);
-
-    if (!match) return fail(rule, outstart);
-		
-		return succeed(rule);
-	}
-	
-	boolean ruleERROR(Node rule) {
-		// ERROR~~ <- 'error' Spacing
-		boolean match;
-		int inmark = inpos;
-		int outmark = outpos;
-		match = matchLiteral("error");
-		if (match)
-			match = ruleSpacing(rule);
-		outpos = outmark;
-		if (!match) {
-			inpos = inmark;
-			return false;
-		}
-		return true;
-	}
-
 	boolean rulePrimary(Node rule) {
 		// Primary~ <- Identifier !(DEFSUPPRESS? LEFTARROW)
     // / SpecialIdentifier
