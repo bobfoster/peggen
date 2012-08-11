@@ -338,7 +338,7 @@ whitespace? This is made possible by two special rules:
   a line which is indented relative to the preceding line.
 
 * `$Outdent` matches the first non-whitespace character position in
-  a line which returns indentation to a preceding value.
+  a line which returns indentation to a preceding level.
   
 The indentation calculation is done by the `$WS` rule. If the rule is not used,
 `$Indent` and `$Outdent` will never match.
