@@ -284,7 +284,7 @@ Implied Whitespace Grammars
 Wouldn't it be nice if
 there were a way to write grammars without fussing over whitespace?
 
-There is, using BNF-like rule definitions. The following is equivalent to
+There is, using `::=` rule definitions. The following is equivalent to
 the two preceding grammars:
 
     gram ~     = WS add !.
