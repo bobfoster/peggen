@@ -253,7 +253,7 @@ by modifying the grammar as follows:
     num      = [0-9]+ '.' [0-9]+
     S    ~   = [ \t\r\n]*
 
-Since the added gram and S rules are marked with ~ they will not
+Since the added S rule is marked with ~, it will not
 appear in the output tree, which will remain as discussed above.
 
 An alternative approach, suggested by Bryan Ford, is to separate
@@ -274,17 +274,17 @@ For example:
 
 Both approaches have drawbacks. The first grammar is cluttered with
 whitespace annotation and is error-prone. The second nearly
-doubles the size of the grammar while making it somewhat less readable.
+doubles the size of the example grammar while making it somewhat less readable.
 More complex grammars can be even more muddled.
 
-"BNF" Grammars
-==============
+Implied Whitespace Grammars
+===========================
 
 Wouldn't it be nice if
 there were a way to write grammars without fussing over whitespace?
 
-There is, using the "BNF" operator. The following is equivalent to
-the grammar above:
+There is, using BNF-like rule definitions. The following is equivalent to
+the two preceding grammars:
 
     gram ~   ::= WS add !.
     add  ~2  ::= mul ('+' mul)*
@@ -294,26 +294,23 @@ the grammar above:
 
 (We have written the ~ annotation in a separate column for neatness.)
 
-We call `::=` the BNF operator as homage to John Backus and Peter Naur,
-who invented the notation to describe Algol 60. We write "BNF" in
-quotes because, it is of course, not BNF at all - BNF defines 
-context-free grammars - but PEG
-augmented with a whitespace-handling trick. The notation does closely
-resemble the numerous "Extended BNF" notations that have added regular
-expression operators for iteration, as PEG does, but PEG uses [ ] brackets
-in an entirely different way.
+We use `::=` as an homage to John Backus and Peter Naur,
+who invented Backus Naur Form (BNF) notation to describe Algol 60.
+Of course, this is not BNF at all. BNF defines 
+context-free grammars. These rules define PEG grammars
+augmented with a whitespace-handling trick. Nothing else is changed.
 
 In rules defined with `::=`, peggen automatically inserts a
 call to the WS rule after every literal, character set or call to
 a non-`::=` rule. (But not after `.` (dot).)
 
-In a grammar with any `::=` rules, the WS rule is predefined as:
+In a grammar with any `::=` rules, if the grammar does not contain
+a rule named WS, the WS rule is predefined as:
 
     WS  ~ = $WS
     $WS ~ = [ \t\r\n]*
     
-_only_ if there is no other definition of WS in the grammar. Thus,
-you can use the default definition or override it with any other.
+Thus, you can use the default definition or override it with any other.
 
 For example, here is the grammar written to allow C++-style multi-line
 comments in whitespace.
@@ -327,7 +324,7 @@ comments in whitespace.
     WS	 ~	 =   ($WS cmnt)*
     cmnt ~   =   '/*' (!'*\' .)* '*/'
 
-Note that the grammar-defined WS makes use of the $WS special rule.
+Note that the grammar-defined WS makes use of the `$WS` special rule.
 It doesn't have to, but there is an advantage to doing so, discussed
 in the next section.
 
@@ -344,22 +341,29 @@ whitespace? This is made possible by two special rules:
 * `$Outdent` matches the first non-whitespace character position in
   a line which returns indentation to a preceding value.
   
-The indentation calculation is done by the $WS rule. If the rule is not used,
-$Indent and $Outdent will never match.
+The indentation calculation is done by the `$WS` rule. If the rule is not used,
+`$Indent` and `$Outdent` will never match.
 
 For example, here is a grammar with a Python-like if statement:
 
     if    ::=  'if' condition ':' block elif* else?
     elif  ::=  'elif' condition ':' block
     else  ::=  'else' ':' block
-    block ::=  $Indent (!$Outdent stmt)*
+    block ::=  $Indent (!$Outdent stmt)+
     stmt  ::=  if | ...
 
-peggen maintains a stack of indentation positions. When $Indent matches,
-it pushes the current position onto the stack. When $Outdent matches,
+peggen maintains a stack of indentation positions. When `$Indent` matches,
+it pushes the current position onto the stack. When `$Outdent` matches,
 it pops the stack. This allows indentation levels to be nested, as one
-would expect. Note that a ! match is a match, as far as $Outdent is
-concerned.
+would expect.
+
+Warning: Because the `$Indent` and `$Outdent` rules change
+the state they are reporting, they are consumed by lookahead. For example,
+
+    block ::=  $Indent (!$Outdent stmt)+ $Outdent
+
+is wrong! It will have the unfortunate effect of unwinding two levels
+of indentation or failing if there is only one.
 
 A limitation of the current implementation is that the tab ('\t')
 character is always counted as 8 spaces. Fortunately, most editors
