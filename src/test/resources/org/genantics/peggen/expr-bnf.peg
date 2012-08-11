@@ -1,0 +1,45 @@
+#-----------------------------------------------------------------
+# Expression grammar example using BNF
+#
+# The grammar illustrates the BNF style of whitespace
+# handling. In BNF rules, indicated by the ::= operator,
+# the rule WS is called after matching every literal,
+# character set or non-BNF rule.
+#
+# If no WS rule is defined in the grammar, a rule
+# is generated defining WS as [ \t\r\n]*.
+#
+# Note the use of the implicitly defined WS.
+#
+# BNF rules can significantly simplify grammars
+# as no special rules need be defined solely to
+# deal with trailing whitespace.
+#
+# Matched rules are Node values in the output except:
+#
+#   - Rules with name followed by ~, like Unary
+#   - Rules with name followed by ~n where the body does not
+#     match at least n rules, like Sum, Prod and Power.
+#
+# Thus, the only Nodes that appear in the parser output
+# unconditionally are Unary, MUL, DIV, ADD, SUB, MINUS and NUMBER.
+# Sum, Prod and Power may appear if they have more than
+# one child.
+#
+# The . term matches any character. !. does not match any
+# character, and hence matches the end of input.
+#-----------------------------------------------------------------
+
+Grammar~  ::=  WS? Sum !.
+Sum~2     ::=  Prod ((ADD | SUB) Prod)*
+Prod~2    ::=  Power ((MUL | DIV) Power)*
+Power~2   ::=  Unary ('^' Power)*
+Unary~2   ::=  '-'? Term
+Term~     ::=  NUMBER | '(' Sum ')'
+
+MUL         =  '*'
+DIV         =  '/'
+ADD         =  '+'
+SUB         =  '-'
+NUMBER      =  DIGIT+ ('.' DIGIT+ | [eE] [-+]? DIGIT+ )?
+DIGIT~      =  [0-9]
