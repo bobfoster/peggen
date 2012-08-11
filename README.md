@@ -275,7 +275,8 @@ For example:
 Both approaches have drawbacks. The first grammar is cluttered with
 whitespace annotation and is error-prone. The second nearly
 doubles the size of the example grammar while making it somewhat less readable.
-More complex grammars can be even more muddled.
+More complex grammars can be even more muddled. There is little benefit
+in allowing non-terminals in grammar rules if they are never used!
 
 Implied Whitespace Grammars
 ===========================
