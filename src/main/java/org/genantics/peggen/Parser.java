@@ -11,8 +11,7 @@
  
 package org.genantics.peggen;
 
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 
 /**
@@ -51,7 +50,9 @@ public class Parser {
 		// ruleGrammar is the start rule
 		// parse could start with any rule
 		if (ruleGrammar(null)) {
-			return pack();
+			Node[] tree = pack();
+      if (checkMissingRules(tree))
+        return tree;
     }
 		else
 			return null;
@@ -98,6 +99,57 @@ public class Parser {
 	int inpos() {
 		return inpos;
 	}
+  
+  boolean checkMissingRules(Node[] tree) {
+    Set<String> defns = new HashSet<String>();
+    defns.add("$WS");
+    defns.add("$Error");
+    defns.add("$Indent");
+    defns.add("$Outdent");
+    collectDefinitions(tree[0], defns);
+    Set<String> reported = new HashSet<String>();
+    if (haveBNF)
+      reported.add("WS");
+    return checkRuleBody(tree[0], defns, reported);
+  }
+  
+  void collectDefinitions(Node node, Set<String> defns) {
+    if (node.name == "Definition" || node.name == "BNFDefinition") {
+      Node ident = node.child;
+      expect(ident, "Identifier");
+      String name = new String(in, ident.offset, ident.length).trim();
+      defns.put(name, name);
+    } else {
+      for (Node child = node.child; child != null; child = child.next)
+        collectDefinitions(child);
+    }
+  }
+  
+  boolean haveBNF = false;
+  
+  boolean checkRuleBody(Node node, Set<String> defns, Set<String> reported) {
+    if (node.name == "Definition" || node.name == "BNFDefinition") {
+      haveBNF |= node.name == "BNFDefinition";
+      Node ident = node.child;
+      expect(ident, "Identifier");
+      Node expr = ident.next;
+      if (expr != null && expr.name == "DEFSUPPRESS")
+        expr = expr.next;
+      return checkRuleBody(expr, defns);
+    } else if (node.name == "Identifier" || node.name == "SpecialIdentifier") {
+      String name = new String(in, node.offset, node.length).trim();
+      if (!defns.containsKey(name) && !reported.contains(name)) {
+        error(node.offset, "Undefined rule");
+        reported.add(name);
+        return false;
+      }
+      return true;
+    } else {
+      for (Node child = node.child; child != null; child = child.next)
+        return collectDefinitions(child);
+      return true;
+    }
+   }
 	
 	boolean ruleGrammar(Node parent) {
 		// Grammar <- Spacing Definition+ (EndOfFile / error)
@@ -139,15 +191,19 @@ public class Parser {
   }
 	
 	private void error() {
-		if (errors == null)
-			errors = new LinkedList();
     int pos = inpos;
     if (lastFail != null && lastFail.offset > pos)
       pos = lastFail.offset;
-    errors.add("Parse error at line "+countLines(pos)+":");
+    error(pos, "Parse error");
+	}
+  
+  private void error(int pos, String msg) {
+		if (errors == null)
+			errors = new LinkedList();
+    errors.add(msg+" at line "+countLines(pos)+":");
 		errors.add(collectErrorString(pos));
     errors.add(indicateCharPos(pos));
-	}
+  }
   
   private int countLines(int pos) {
     int line = 1;
@@ -430,8 +486,7 @@ public class Parser {
 	}
 
 	boolean rulePrimary(Node rule) {
-		// Primary~ <- Error
-		// / Identifier !(DEFSUPPRESS? LEFTARROW)
+		// Primary~ <- Identifier !(DEFSUPPRESS? LEFTARROW)
     // / SpecialIdentifier
 		// / &'(' Term
 		// / Literal / Class / DOT
@@ -440,25 +495,23 @@ public class Parser {
 		boolean match = false;
 		int outmark = outpos;
 		int inmark = inpos;
-		match = ruleError(rule);
-		if (!match) {
+		match = match = ruleIdentifier(rule);
+    if (match) {
+      int outmark1 = outpos;
+      int inmark1 = inpos;
+      match = ruleDEFSUPPRESS(rule);
+      match = true;
+      if (match)
+        match = ruleLEFTARROW(rule);
+      match = !match;
+      outpos = outmark1;
+      inpos = inmark1;
+    }
+    if (!match) {
 			outpos = outmark;
 			inpos = inmark;
-			match = ruleIdentifier(rule);
-			if (match) {
-				int outmark1 = outpos;
-				int inmark1 = inpos;
-				match = ruleDEFSUPPRESS(rule);
-				match = true;
-				if (match)
-					match = ruleLEFTARROW(rule);
-				match = !match;
-				outpos = outmark1;
-				inpos = inmark1;
-			}
-		}
-    if (!match)
       match = ruleSpecialIdentifier(rule);
+    }
 		if (!match) {
 			outpos = outmark;
 			inpos = inmark;
