@@ -1,0 +1,18 @@
+#-----------------------------------------------------------------
+# Buggy grammar - Syntax errors
+# Only the first is reported.
+#-----------------------------------------------------------------
+
+Grammar~  ::=  WS? Sum !.
+Sum~2     ::=  Prod ((ADD || SUB) Prod)*
+Prod~2    ::=  Power ((MUL | DIV) Power)*
+Power~2   ::=  Unary ('^' Power)*
+Unary~2   ::=  '-'? Term
+Term~     ::=  NUMBER || '(' Sum ')'
+
+MUL         =  '*'
+DIV         =  '/'
+ADD         =  '+'
+SUB         =  '-'
+NUMBER      =  DIGIT+ ('.' DIGIT+ | [eE] [-+]? DIGIT+ )?
+DIGIT~      =  [0-9]

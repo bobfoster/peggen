@@ -34,6 +34,8 @@ public class Parser {
 	
 	private static final int INITIAL_OUT_SIZE = 100;
 	
+  private static final boolean DEBUG = false;
+
 	public Node[] parseGrammar(String grammar) {
 		char[] buf = grammar.toCharArray();
 		return parseGrammar(buf, 0, buf.length);
@@ -47,6 +49,10 @@ public class Parser {
 		inpos = start;
 		inend = start + length;
 		error = null;
+    if (DEBUG) {
+      System.err.println();
+      System.err.println("********BEGIN PARSE");
+    }
 		// ruleGrammar is the start rule
 		// parse could start with any rule
 		if (ruleGrammar(null)) {
@@ -54,8 +60,7 @@ public class Parser {
       if (checkMissingRules(tree))
         return tree;
     }
-		else
-			return null;
+		return null;
 	}
 	
 	/**
@@ -109,19 +114,19 @@ public class Parser {
     collectDefinitions(tree[0], defns);
     Set<String> reported = new HashSet<String>();
     if (haveBNF)
-      reported.add("WS");
+      defns.add("WS");
     return checkRuleBody(tree[0], defns, reported);
   }
   
   void collectDefinitions(Node node, Set<String> defns) {
     if (node.name == "Definition" || node.name == "BNFDefinition") {
+      haveBNF |= node.name == "BNFDefinition";
       Node ident = node.child;
-      expect(ident, "Identifier");
       String name = new String(in, ident.offset, ident.length).trim();
-      defns.put(name, name);
+      defns.add(name);
     } else {
       for (Node child = node.child; child != null; child = child.next)
-        collectDefinitions(child);
+        collectDefinitions(child, defns);
     }
   }
   
@@ -129,25 +134,24 @@ public class Parser {
   
   boolean checkRuleBody(Node node, Set<String> defns, Set<String> reported) {
     if (node.name == "Definition" || node.name == "BNFDefinition") {
-      haveBNF |= node.name == "BNFDefinition";
       Node ident = node.child;
-      expect(ident, "Identifier");
       Node expr = ident.next;
       if (expr != null && expr.name == "DEFSUPPRESS")
         expr = expr.next;
-      return checkRuleBody(expr, defns);
+      return checkRuleBody(expr, defns, reported);
     } else if (node.name == "Identifier" || node.name == "SpecialIdentifier") {
       String name = new String(in, node.offset, node.length).trim();
-      if (!defns.containsKey(name) && !reported.contains(name)) {
+      if (!defns.contains(name) && !reported.contains(name)) {
         error(node.offset, "Undefined rule");
         reported.add(name);
         return false;
       }
       return true;
     } else {
+      boolean check = true;
       for (Node child = node.child; child != null; child = child.next)
-        return collectDefinitions(child);
-      return true;
+        check &= checkRuleBody(child, defns, reported);
+      return check;
     }
    }
 	
@@ -194,12 +198,13 @@ public class Parser {
     int pos = inpos;
     if (lastFail != null && lastFail.offset > pos)
       pos = lastFail.offset;
-    error(pos, "Parse error");
+    error(pos, "Syntax error");
 	}
   
   private void error(int pos, String msg) {
 		if (errors == null)
 			errors = new LinkedList();
+    pos = Math.min(pos, in.length);
     errors.add(msg+" at line "+countLines(pos)+":");
 		errors.add(collectErrorString(pos));
     errors.add(indicateCharPos(pos));
@@ -224,6 +229,9 @@ public class Parser {
       else
         sb.append(' ');
     }
+    // One less space before ^
+    if (sb.length() > 0)
+      sb.setLength(sb.length()-1);
     sb.append('^');
     return sb.toString();
   }
@@ -238,9 +246,7 @@ public class Parser {
     }
     if (start > 0)
       start++;
-    for (int i = start; i < pos; i++)
-      buf.append(in[i]);
-		for (int i = pos; i < inend; i++) {
+		for (int i = start; i < inend; i++) {
 			char c = in[i];
 			if (c == '\r' || c == '\n')
         break;
@@ -333,21 +339,25 @@ public class Parser {
 	}
 
 	boolean ruleSequence(Node parent) {
-		// Sequence~2 <- Prefix*
+		// Sequence~2 <- Prefix+
+    if (DEBUG) System.err.println("*Enter sequence");
 		int outstart = outpos;
 		if (sameRule("Sequence")) return out[outstart].success;
 		Node rule = new Node("Sequence", parent, inpos);
 		out[outpos++] = rule;
 		
 		int count = 0;
-		boolean match;
-		do {
-			match = rulePrefix(rule);
-			if (match) count++;
-		} while (match);
-		// the next two lines can be omitted in peephole optimization
-		match = true;
-		if (!match) return fail(rule, outstart);
+		boolean match = rulePrefix(rule);
+    if (match) count++;
+    if (match) {
+      do {
+        match = rulePrefix(rule);
+        if (match) count++;
+      } while (match);
+      match = true;
+    }
+
+    if (!match) return fail(rule, outstart);
 		rule.remove = count < 2;
 		return succeed(rule);
 	}
@@ -1059,13 +1069,28 @@ public class Parser {
 		}
 		return true;
 	}
-
+  
+  private String getMatched(Node rule) {
+    if (!DEBUG) return null;
+    else {
+      if (rule.length == 0)
+        return "*empty*";
+      if (rule.length > 60) {
+        return new String(in, rule.offset, 30)
+                + "..."
+                + new String(in, rule.offset+rule.length-30, 30);
+      }
+      return new String(in, rule.offset, rule.length);
+    }
+  }
+  
 	private boolean succeed(Node rule) {
 		rule.success = true;
 		rule.length = inpos - rule.offset;
 		rule.nextout = outpos;
     if (lastFail != null && rule.offset >= lastFail.offset)
       lastFail = null;
+    if (DEBUG) System.err.println("*"+rule.name+" succeed: "+getMatched(rule));
 		return true;
 	}
 	
@@ -1074,6 +1099,7 @@ public class Parser {
 		inpos = rule.offset;
     if (lastFail == null || rule.offset > lastFail.offset)
       lastFail = rule;
+    if (DEBUG) System.err.println("*"+rule.name+" fail");
 		return false;
 	}
 	

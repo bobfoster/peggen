@@ -27,6 +27,7 @@ public class TestExpr extends TestCase {
     PegGen gen = new PegGen();
     File file = new File("./target/test/java/org/genantics/generated/"+className+".java");
     File inFile = new File("./src/test/resources/org/genantics/peggen/"+pegName+".peg");
+    assertTrue(inFile.exists());
     try {
       File parent = file.getParentFile();
       if (!parent.exists())

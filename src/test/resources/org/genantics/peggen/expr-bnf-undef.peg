@@ -1,0 +1,18 @@
+#-----------------------------------------------------------------
+# Buggy grammar - Undefined rules Foo and Bar
+# Each should be reported only once.
+#-----------------------------------------------------------------
+
+Grammar~  ::=  WS? Foo Sum !.
+Sum~2     ::=  Prod Bar ((ADD | SUB) Prod)*
+Prod~2    ::=  Power Foo ((MUL | DIV) Power)*
+Power~2   ::=  Unary Bar ('^' Power)*
+Unary~2   ::=  '-'? Term
+Term~     ::=  NUMBER | '(' Sum ')'
+
+MUL         =  '*'
+DIV         =  '/'
+ADD         =  '+'
+SUB         =  '-'
+NUMBER      =  DIGIT+ ('.' DIGIT+ | [eE] [-+]? DIGIT+ )?
+DIGIT~      =  [0-9]

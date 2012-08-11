@@ -370,11 +370,11 @@ Error Handling
 ==============
 
 The first thing to say about error handling is, peggen isn't very good
-at it. When a grammar doesn't match, peggen produces one error message,
-"Syntax error" with a pointer to the approximate position in the input
-where the parse failed. (Also, when a grammar uses undefined rules,
+at it. When a grammar doesn't parse, peggen and its generated grammars
+produce one "Syntax error" with a pointer to the position in the input
+where the error was detected. When a grammar uses undefined rules,
 peggen produces one error message per undefined rule, indicating the
-position at which it was first used.)
+position at which it was first used.
 
 It is possible to improve, at least, the number of errors detected,
 by using the special $Error rule. $Error always matches and, as a
@@ -387,9 +387,10 @@ statements terminated by semicolon, like this,
     
 one possible recovery might be:
 
-    body  ::= (statement ';' | $Error !';'* ';')*
+    body  ::= (statement ';' | $Error (!';' .)* ';')*
 
-But, in general, recovery will be more complex.
+But, in general, recovery will be more complex. The above, for
+example, will stop in the middle of "a;b".
 
 Miscellaneous Notes
 ===================
