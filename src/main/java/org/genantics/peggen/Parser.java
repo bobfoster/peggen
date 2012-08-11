@@ -50,8 +50,9 @@ public class Parser {
 		error = null;
 		// ruleGrammar is the start rule
 		// parse could start with any rule
-		if (ruleGrammar(null))
+		if (ruleGrammar(null)) {
 			return pack();
+    }
 		else
 			return null;
 	}

@@ -3,14 +3,13 @@ peggen
 
 Yet another PEG parser generator for Java. See http://bford.info/packrat/.
 
-peggen is intended to be (almost) the simplest thing that could possibly work.
-It is a simple tool for writing DSLs, with a much smaller footprint than
-alternatives we are aware of.
+peggen is a tool for writing DSLs. It is as near as we could manage
+the simplest thing that could possibly work.
 
-Grammar Syntax
-==============
+PEG Grammar Syntax
+==================
   
-Parsers can be written in Bryan Ford's original notation, using <-
+PEG parsers can be written in Bryan Ford's original notation, using <-
 to define rules and / for alternatives, or in a slightly more readable
 notation using = and |. Here is the same rule written both ways.
 
@@ -19,6 +18,9 @@ notation using = and |. Here is the same rule written both ways.
     rule = term1 | term2
 
 (Yes, you can mix and match, but that would be crazy.)
+
+There is actually a third definition operator, `::=`, used to write "BNF"
+grammars. We will discuss BNF separately.
 
 Rule names are not case-sensitive. If you want to follow the practice
 of writing "lexical" rules in CAPS and "parse" rules in lowercase,
@@ -29,7 +31,7 @@ A very general description of rule syntax that does not deal with
 whitespace and thus is NOT a PEG grammar is:
 
     grammar     = rule+
-    rule        = rule-head ('<-' | '=') rule-body
+    rule        = rule-head ('<-' | '=' | '::=') rule-body
     rule-head   = rule-name qualifier?
     rule-name   = identifier
     rule=body   = alternative (('/' | '|') alternative)*
@@ -103,10 +105,10 @@ is a separate method to fetch a List of error messages. The array contains
 a tree, your Abstract Syntax Tree (AST). The first element in the array
 is the head of the tree.
 
-Node is the only "library code" you need. (It probably should be packaged
-separately, to minimize the footprint of your application, but I haven't
-gotten around to that.) It's actually a struct written in Java. The part
-of the definition you care about is:
+Node is the only "library code" you need. It is packaged separately, in
+its own little peggen-node jar, to minimize the footprint of your application.
+Node is actually a struct written in Java. The part of the definition you care 
+about is:
 
     public class Node {
 	  public String name;
@@ -138,36 +140,41 @@ significant to the interpretation of the tree.
 
 For example, here's a little grammar:
 
-    add  = S? mul ('+' mul)* !.
+    gram = add !.
+    add  = mul ('+' mul)*
     mul  = term ('*' term)*
-    term = num S? | '(' S? expr ')' S?
-    num  = [0-9]+
-    S    = [ \n\t\r]+
+    term = num | '(' add ')'
+    num  = [0-9]+ '.' [0-9]+
 
-If you generate a parser from it and feed the parser the input
+(The gram rule's sole purpose is to ensure that the grammar matches the
+entire input, not just a leading substring of it. The name of the rule
+is not significant, but its position is. peggen starts parsing from the first rule.)
+
+If you generate a parser from this and feed the parser the input
 "3+4*5" you will get back a tree of Nodes with names like this (indentation
 indicates parent/child):
 
-    "add"
-      "mul"
-        "term"
-          "num" (3)
-      "mul"
-        "term"
-          "num" (4)
-        "term"
-          "num" (5)
+    "gram"
+      "add"
+        "mul"
+          "term"
+            "num" (3)
+        "mul"
+          "term"
+            "num" (4)
+          "term"
+            "num" (5)
 
-(S is never matched in the example input, but it's in the example grammar
-to remind you that there's nothing special about whitespace in a PEG.)
+You will note there is considerable clutter in the tree. The gram and term nodes
+add no information at all, and a mul with only one child signifies nothing.
 
 If you mark up the grammar as follows:
 
-    add~2  = S? mul ('+' mul)* !.
+    gram~  = add !.
+    add~2  = mul ('+' mul)*
     mul~2  = term ('*' term)*
-    term~  = num S? | '(' S? expr ')' S?
-    num    = [0-9]+
-    S~     = [ \n\t\r]+
+    term~  = num | '(' add ')'
+    num    = [0-9]+ '.' [0-9]+
 
 and repeat the experiment, you will get back a tree like this:
 
@@ -184,6 +191,167 @@ Which is the tree you would draw on the blackboard as:
       3   *
          / \
         4   5
+
+Interpreting parse trees is quite simple, though not at all object-oriented.
+Usually, one writes a visitor with a method for each non-~ rule in the
+grammar, and a dispatch rule that keys off the names of the nodes. For the
+above grammar there are only three rules.
+
+    float eval(Node node) {
+      if (node.name == "add")  // yes, this is valid*
+        return evalAdd(node);
+      if (node.name == "mul")
+        return evalMul(node);
+      if (node.name == "num")
+        return evalNum(node);
+    }
+    float evalAdd(Node node) {
+      float n = eval(node.child);
+      for (Node child = node.child.next; child != null; child = child.next)
+    	n += eval(child);
+      return n;
+    }
+    float evalMul(Node node) {
+      float n = eval(node.child);
+      for (Node child = node.child.next; child != null; child = child.next)
+    	n *= eval(child);
+      return n;
+    }
+    float evalNum(Node node) {
+      String num = inString.substring(node.offset, node.offset+node.length);
+      return Double.parseDouble(num);
+    }
+
+\* Java literal strings are interned. Node names are always assigned values
+  from literals.
+
+Note that the original input, as a String or char array, is needed to
+extract literals (or in DSLs, identifiers). A Node only has offsets into 
+this String or array.
+
+Dealing With Whitespace
+=======================
+
+The grammar above allows no whitespace between numbers and operators.
+In a PEG grammar, whitespace between any two symbols would be allowed
+by modifying the grammar as follows:
+
+	gram~  = S add !.
+    add~2  = mul ('+' S mul)* !.
+    mul~2  = term ('*' S term)*
+    term~  = num S | '(' S add ')' S
+    num    = [0-9]+ '.' [0-9]+
+    S~     = [ \t\r\n]*
+
+Since the added gram and S rules are marked with ~ they will not
+appear in the output tree, which will remain as discussed above.
+
+"BNF" Grammars
+==============
+
+Unfortunately, even the very simple grammar above is cluttered up by
+whitespace considerations. More complex grammars can be even more
+muddled and it is easy to make mistakes. Wouldn't it be nice if
+there were a way to write grammars without fussing over whitespace?
+
+There is, using the "BNF" operator. The following is equivalent to
+the grammar above:
+
+    gram ~   ::= WS add !.
+    add  ~2  ::= mul ('+' mul)*
+    mul  ~2  ::= term ('*' term)*
+    term ~   ::= num | '(' add ')'
+    num      =   [0-9]+ '.' [0-9]+
+
+We call `::=` the BNF operator as homage to John Backus and Peter Naur,
+who invented the notation to describe Algol 60. We write "BNF" in
+quotes because, it is of course, not BNF at all, which defines 
+context-free grammars, but PEG
+augmented with a whitespace-handling trick. The notation does closely
+resemble the numerous "Extended BNF" notations that added regular
+expression operators for iteration, as PEG does, but uses [ ] brackets
+in an entirely different way.
+
+In rules defined with ::=, peggen automatically inserts a
+call to the WS rule after every literal, character set or call to
+a non-::= rule. (But not after . (dot).)
+
+In a grammar with any ::= rules, the WS rule is predefined as:
+
+    WS  ~ = $WS
+    $WS ~ = [ \t\r\n]*
+    
+_only_ if there is no other definition of WS in the grammar. Thus,
+you can use the default definition or override it with any other.
+
+For example, here is the grammar written to allow C++-style multi-line
+comments in whitespace.
+
+	gram ~   ::= WS add !.
+    add  ~2  ::= mul ('+' mul)*
+    mul  ~2  ::= term ('*' term)*
+    term ~   ::= num | '(' add ')'
+    num      =   [0-9]+ '.' [0-9]+
+    
+    WS	 ~	 =   ($WS cmnt)*
+    cmnt ~   =   '/*' (!'*\' .)* '*/'
+
+Note that the grammar-defined WS makes use of the $WS special rule.
+It doesn't have to, but there is an advantage to doing so, discussed
+in the next section.
+
+Indentation-sensitive Grammars
+==============================
+
+Some languages, like Python, are sensitive to indentation. How can
+one describe such a language in a grammar that is insensitive to
+whitespace? This is made possible by two special rules:
+
+* `$Indent` matches the first non-whitespace character position in
+  a line which is indented relative to the preceding line.
+
+* `$Outdent` matches the first non-whitespace character position in
+  a line which returns indentation to a preceding value.
+  
+The indentation calculation is done by the $WS rule. If the rule is not used,
+$Indent and $Outdent will never match.
+
+For example, here is a grammar with a Python-like if statement:
+
+    if    ::=  'if' condition ':' block elif* else?
+    elif  ::=  'elif' condition ':' block
+    else  ::=  'else' ':' block
+    block ::=  $Indent (!$Outdent stmt)*
+    stmt  ::=  if | ...
+
+peggen maintains a stack of indentation positions. When $Indent matches,
+it pushes the current position onto the stack. When $Outdent matches,
+it pops the stack. This allows indentation levels to be nested, as one
+would expect. Note that a ! match is a match, as far as $Outdent is
+concerned.
+
+Error Handling
+==============
+
+The first thing to say about error handling is, peggen isn't very good
+at it. When a grammar doesn't match, peggen produces one error message,
+"Syntax error" with a pointer to the approximate position in the input
+where the parse failed.
+
+It is possible to improve, at least, the number of errors detected,
+by using the special $Error rule. $Error always matches and, as a
+side effect, records the current input position in a list of syntax
+errors. $Error should always be the last alternative in a rule that
+is appropriate for error recovery. For example, if the grammar has
+statements terminated by semicolon, like this,
+
+    body  ::= (statement ';')*
+    
+one possible recovery might be:
+
+    body  ::= (statement ';' | $Error !';'* ';')*
+
+But, in general, recovery will be more complex.
 
 Miscellaneous Notes
 ===================
@@ -211,22 +379,21 @@ Miscellaneous Notes
   with almost no overhead. It is particularly good at optimizing the
   common idiom:
   
-      `rule = !term thisrule | term thatrule`
+    `rule = !term thisrule | term thatrule`
 
   where term is an arbitrarily complex lookahead used to disambiguate
-  two alternatives that start with the same, arbitrarily long sequence 
-  of symbols.
+  two alternatives that start with the same sequence.
 
 - We extend Ford's syntax to allow grammar writers to indicate
   rules that are to be pruned from the
-  output tree. A ~ written after a rule name means the rule is never
+  output tree. A ~ written after a rule name definition means the rule is never
   included in the tree. A ~n, where n is an integer, means the
   rule is only included in the tree if it would have at least
   n children.
   
   The latter turns out to be very useful in avoiding the blizzard
   of inessential tree nodes that result from expressing operator
-  precedence by recursive rules.
+  precedence by nested rules.
   
 -  Literals, including quoted strings like 'a' and sets/ranges like
   [0-9a-fA-F], and the . which matches any character, are not rules
@@ -239,7 +406,8 @@ Miscellaneous Notes
   can alter the plain meaning of rules you only think you understand -
   so in balance, we left it out.
 
-- Yes, it is possible to describe peggen grammars in peggen. In fact,
+- Yes, it is possible to describe pure PEG subset of peggen grammars in peggen.
+  In fact,
   I once bootstrapped peggen so that it generated its own parser.
   That was definitely NOT the simplest thing that could work (!)
   so I abandoned it.
@@ -247,4 +415,4 @@ Miscellaneous Notes
   Bob Foster
   July 29, 2012
   
-  Last modified July 31, 2012
+  Last modified August 11, 2012
