@@ -3,8 +3,7 @@ peggen
 
 Yet another PEG parser generator for Java. See http://bford.info/packrat/.
 
-peggen is a tool for writing DSLs. It is as near as we could manage
-the simplest thing that could possibly work.
+peggen is a tool for writing DSLs.
 
 PEG Grammar Syntax
 ==================
@@ -19,7 +18,7 @@ notation using = and |. Here is the same rule written both ways.
 
 (Yes, you can mix and match, but that would be crazy.)
 
-There is actually a third definition operator, `::=`, used to write "BNF"
+There is actually a third definition operator, `::=`, used to write BNF-style
 grammars. We will discuss `::=` separately.
 
 Rule names are not case-sensitive. If you want to follow the practice
@@ -448,7 +447,7 @@ Miscellaneous Notes
   can alter the plain meaning of rules you only think you understand -
   so in balance, we left it out.
 
-- Yes, it is possible to describe pure PEG subset of peggen grammars in peggen.
+- Yes, it is possible to describe the pure PEG subset of peggen grammars in peggen.
   In fact,
   I once bootstrapped peggen so that it generated its own parser.
   That was definitely NOT the simplest thing that could work (!)
@@ -457,4 +456,4 @@ Miscellaneous Notes
   Bob Foster
   July 29, 2012
   
-  Last modified August 11, 2012
+  Last modified November 2, 2012

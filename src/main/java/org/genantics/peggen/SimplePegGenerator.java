@@ -877,7 +877,8 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 	
   protected static final String[] WS = {
   "protected boolean ruleWS(Node parent) {\n",
-  "  return rule$WS(parent);\n",
+  "  rule$WS(parent);\n",
+  "  return true;\n",
   "}\n",
   };
 
@@ -912,6 +913,7 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
     "\n",
     "protected boolean rule$WS(Node parent) {\n",
     "  int start = -1;\n",
+    "  int savePos = inpos;\n",
     "  boolean match = true;\n",
     "  while (match) {\n",
     "    while(matchSet(\" \\t\\r\"))\n",
@@ -929,7 +931,7 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
     "  	}\n",
     "  	indentPos = inpos;\n",
     "  }\n",
-    "  return true;\n",
+    "  return savePos != inpos;\n",
     "}\n",
     "\n",
     "protected boolean rule$Error(Node parent) {\n",
