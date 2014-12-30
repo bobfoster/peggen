@@ -76,7 +76,7 @@ concept to internalize.)
 
 A rule qualifier is ~ or ~n, where ~ means the rule is never represented
 in the output tree, and ~n, where n is an integer, means the rule is only
-represented in the output tree if it has more than n children.
+represented in the output tree if it has n or more children.
 
 A rule may be written on any number of lines.
 
