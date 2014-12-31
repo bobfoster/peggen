@@ -156,7 +156,7 @@ public class Parser {
    }
 	
 	boolean ruleGrammar(Node parent) {
-		// Grammar <- Spacing Definition+ (EndOfFile / error)
+		// Grammar <- Spacing Definition+ EndOfFile
 		int outstart = outpos;
 		if (sameRule("Grammar")) return out[outstart].success;
 		Node rule = new Node("Grammar", parent, inpos);
@@ -179,9 +179,6 @@ public class Parser {
 			match = ruleEndOfFile(rule);
 			if (!match) {
 				error();
-				match = true;
-				if (match)
-					match = ruleEndOfFile(rule);
 			}
 		}
 		if (!match) {
@@ -196,15 +193,15 @@ public class Parser {
 	
 	private void error() {
     int pos = inpos;
-    if (lastFail != null && lastFail.offset > pos)
-      pos = lastFail.offset;
+    //if (lastFail != null && lastFail.offset > pos)
+    //  pos = lastFail.offset;
     error(pos, "Syntax error");
 	}
   
   private void error(int pos, String msg) {
 		if (errors == null)
 			errors = new LinkedList();
-    pos = Math.min(pos, in.length);
+    pos = Math.min(pos, in.length-1);
     errors.add(msg+" at line "+countLines(pos)+":");
 		errors.add(collectErrorString(pos));
     errors.add(indicateCharPos(pos));
