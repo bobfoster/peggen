@@ -122,7 +122,7 @@ public class Parser {
     if (node.name == "Definition" || node.name == "BNFDefinition") {
       haveBNF |= node.name == "BNFDefinition";
       Node ident = node.child;
-      String name = new String(in, ident.offset, ident.length).trim();
+      String name = PegUtil.strip(in, ident);
       defns.add(name);
     } else {
       for (Node child = node.child; child != null; child = child.next)
@@ -140,7 +140,7 @@ public class Parser {
         expr = expr.next;
       return checkRuleBody(expr, defns, reported);
     } else if (node.name == "Identifier" || node.name == "SpecialIdentifier") {
-      String name = new String(in, node.offset, node.length).trim();
+      String name = PegUtil.strip(in, node);
       if (!defns.contains(name) && !reported.contains(name)) {
         error(node.offset, "Undefined rule");
         reported.add(name);
@@ -1118,7 +1118,7 @@ public class Parser {
 			out = tmp;
 		}
 	}
-
+	
 	private Node[] pack() {
 		out = Node.pack(out, outpos);
 		outpos = out.length;

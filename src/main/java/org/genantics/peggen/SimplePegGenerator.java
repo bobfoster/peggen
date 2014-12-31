@@ -64,7 +64,7 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 		this.tab = tab;
 		indent = "";
 		loc = 0;
-    preprocess(grammar);
+		preprocess(grammar);
 		visit(grammar);
 	}
 	
@@ -127,7 +127,7 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
     if (node.name == "Definition" || node.name == "BNFDefinition") {
       Node ident = node.child;
       expect(ident, "Identifier");
-      String name = new String(in, ident.offset, ident.length).trim();
+	  String name = PegUtil.strip(in, ident);
       allRules.add(name);
       if (node.name == "BNFDefinition")
         BNFRules.add(name);
@@ -213,7 +213,7 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 		// Definition <- Identifier DEFSUPPRESS? LEFTARROW Expression
 		Node ident = node.child;
 		expect(ident, "Identifier");
-		String name = new String(in, ident.offset, ident.length).trim();
+		String name = PegUtil.strip(in, ident);
     
     inBNFRule = node.name == "BNFDefinition";
 		
@@ -248,7 +248,7 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 				else {
 					int begin = suppress.offset+suppress.length;
 					int end = expr.offset+expr.length;
-					String num = strip(new String(in, bodysuppress.offset, bodysuppress.length));
+					String num = PegUtil.strip(in, bodysuppress);
 					count = Integer.parseInt(num);
 					suppressRule = false;
 				}
@@ -534,7 +534,7 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 			if (defn == null) error("No definitions in grammar");
 			Node ident = defn.child;
 			expect(ident, "Identifier");
-			startRule = new String(in, ident.offset, ident.length).trim();
+			startRule = PegUtil.strip(in, ident);
 		}
 		
 		writer.print(indent);
@@ -621,7 +621,7 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 
 	void visitIdentifier(Node node) {
 		// this is only reached for nonterminal identifiers used in rule bodies
-		String id = strip(new String(in, node.offset, node.length));
+		String id = PegUtil.strip(in, node);
 		writer.print(indent);
 		writer.print("match = ");
 		writer.print(ruleName(id));

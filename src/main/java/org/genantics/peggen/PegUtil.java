@@ -25,6 +25,19 @@ package org.genantics.peggen;
  */
 public class PegUtil {
 
+	/**
+	 * Get the text of a node, stripping any trailing whitespace and comment.
+	 */
+	public static String strip(char[] in, Node node) {
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < node.length; i++) {
+			char c = in[node.offset + i];
+			if (c == ' ' || c == '\r' | c == '\n' || c == '\t' || c == '#') break;
+			sb.append(c);
+		}
+		return sb.toString();
+	}
+	
 	// Char <- '\\' [nrt'"\[\]\\]
 	// / '\\' [0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f][0-9A-Fa-f] # Added
 	// / '\\' [0-2][0-7][0-7]
