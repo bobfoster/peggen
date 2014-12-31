@@ -274,99 +274,7 @@ For example:
 Both approaches have drawbacks. The first grammar is cluttered with
 whitespace annotation and is error-prone. The second nearly
 doubles the size of the example grammar while making it somewhat less readable.
-More complex grammars can be even more muddled. There is little benefit
-in allowing non-terminals in grammar rules if they are never used!
-
-Implied Whitespace Grammars
-===========================
-
-Wouldn't it be nice if
-there were a way to write grammars without fussing over whitespace?
-
-There is, using `::=` rule definitions. The following is equivalent to
-the two preceding grammars:
-
-    gram ~     = WS add !.
-    add  ~2  ::= mul ('+' mul)*
-    mul  ~2  ::= term ('*' term)*
-    term ~   ::= num | '(' add ')'
-    num        = [0-9]+ '.' [0-9]+
-
-We use `::=` because it is unlikely to be confused with `=` and as an homage
-to Backus Naur Form (BNF) notation. But don't
-be fooled, this is not BNF. BNF defines 
-context-free grammars. These rules define PEG grammars
-augmented with a whitespace-handling trick.
-
-In rules defined with `::=`, peggen automatically inserts a
-call to the WS rule after every literal, character set or call to
-a non-`::=` rule. (But not after `.` (dot).)
-
-In a grammar with any `::=` rules, if the grammar does not contain
-a rule named WS, the WS rule is predefined as:
-
-    WS  ~ = $WS
-    $WS ~ = [ \t\r\n]*
-    
-Thus, you can use the default definition or override it with any other.
-
-For example, here is the grammar written to allow C++-style multi-line
-comments in whitespace.
-
-	gram ~   ::= WS add !.
-    add  ~2  ::= mul ('+' mul)*
-    mul  ~2  ::= term ('*' term)*
-    term ~   ::= num | '(' add ')'
-    num      =   [0-9]+ '.' [0-9]+
-    
-    WS	 ~	 =   ($WS cmnt)*
-    cmnt ~   =   '/*' (!'*\' .)* '*/'
-
-Note that the grammar-defined WS makes use of the `$WS` special rule.
-It doesn't have to, but there is an advantage to doing so, discussed
-in the next section.
-
-Indentation-sensitive Grammars
-==============================
-
-Some languages, like Python, are sensitive to indentation. How can
-one describe such a language in a grammar that is insensitive to
-whitespace? This is made possible by two special rules:
-
-* `$Indent` matches the first non-whitespace character position in
-  a line which is indented relative to the preceding line.
-
-* `$Outdent` matches the first non-whitespace character position in
-  a line which returns indentation to a preceding level.
-  
-The indentation calculation is done by the `$WS` rule. If the rule is not used,
-`$Indent` and `$Outdent` will never match.
-
-For example, here is a grammar with a Python-like if statement:
-
-    if    ::=  'if' condition ':' block elif* else?
-    elif  ::=  'elif' condition ':' block
-    else  ::=  'else' ':' block
-    block ::=  $Indent (!$Outdent stmt)+
-    stmt  ::=  if | ...
-
-peggen maintains a stack of indentation positions. When `$Indent` matches,
-it pushes the current position onto the stack. When `$Outdent` matches,
-it pops the stack. This allows indentation levels to be nested, as one
-would expect.
-
-Warning: Because the `$Indent` and `$Outdent` rules change
-the state they are reporting, they are consumed by lookahead. For example,
-
-    block ::=  $Indent (!$Outdent stmt)+ $Outdent
-
-is wrong! It will have the unfortunate effect of unwinding two levels
-of indentation or failing if there is only one.
-
-A limitation of the current implementation is that the tab ('\t')
-character is always counted as 8 spaces. Fortunately, most editors
-allow you to set up tab key handling so that the nominal size of the
-tab character is independent of the indentation style of the author.
+More complex grammars can be even more muddled.
 
 Error Handling
 ==============
@@ -385,14 +293,27 @@ errors. $Error should always be the last alternative in a rule that
 is appropriate for error recovery. For example, if the grammar has
 statements terminated by semicolon, like this,
 
-    body  ::= (statement ';')*
+    body  = (statement ';')*
     
 one possible recovery might be:
 
-    body  ::= (statement ';' | $Error (!';' .)* ';')*
+    body  = (statement ';' | $Error (!';' .)* ';')*
 
 But, in general, recovery will be more complex. The above, for
 example, will stop in the middle of "a;b".
+
+Warning: This has not been well-tested!
+
+Known Bugs
+==========
+
+- I noticed a number of anomalies in string escapes. What seems to work reliably
+  is using set expressions, e.g., [\t] instead of '\t'.
+
+- I have a grammar for which two rules (out of hundreds) that are defined are reported
+  as undefined.
+  
+These bugs are making me rethink the abandoned bootstrapped parser.
 
 Miscellaneous Notes
 ===================
