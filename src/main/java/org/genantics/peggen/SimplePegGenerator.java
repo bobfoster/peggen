@@ -476,6 +476,7 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
 		writer.println("private int outend;");
 		writer.print(indent);
 		writer.println("private LinkedList errors;");
+		writer.print(indent);
     writer.println("private Node lastFail;");
 		writer.println();
 		writer.print(indent);
@@ -968,7 +969,7 @@ public class SimplePegGenerator extends PegNodeVisitor implements Generator {
     "\n",
     "private String indicateCharPos(int pos) {\n",
     "  StringBuilder sb = new StringBuilder();\n",
-    "  for (int i = pos-1 : pos; i >= 0; i--) {\n",
+    "  for (int i = pos; i >= 0; i--) {\n",
 		"    char c = in[i];\n",
 		"    if (eol(c))\n",
     "      break;\n",
