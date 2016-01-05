@@ -374,7 +374,29 @@ Miscellaneous Notes
   That was definitely NOT the simplest thing that could work (!)
   so I abandoned it.
   
+  Building peggen
+  ===============
+  
+  The three peggen projects must be built in this order:
+  
+       peggen-node
+       peggen
+       peggen-maven-plugin
+  
+  Using
+  
+  ```
+  mvn clean install
+  ```
+  
+  Thanks to whomever told me ~~I was an idiot~~ that peggen-node and peggen-maven-plugin
+  had circular dependencies. Unfortunately, it all built for me because I didn't start 
+  with a clean .m2, so I ~~was a moron and~~ didn't fix it until just now. Sorry.
+  
+  The fix removed what was intended to be a working example that somehow got jumbled
+  into peggen-node. Will restore as peggen-calc.
+  
   Bob Foster
   July 29, 2012
   
-  Last modified November 2, 2012
+  Last modified January 4, 2016
