@@ -369,8 +369,7 @@ Miscellaneous Notes
   so in balance, we left it out.
 
 - Yes, it is possible to describe the pure PEG subset of peggen grammars in peggen.
-  In fact,
-  I once bootstrapped peggen so that it generated its own parser.
+  In fact, I once bootstrapped peggen so that it generated its own parser.
   That was definitely NOT the simplest thing that could work (!)
   so I abandoned it.
   
